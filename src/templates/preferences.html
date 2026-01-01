@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Preferences - {{ instance_name }}{% endblock %}
+
+{% block extra_styles %}
+.preferences-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.preferences-container h1 {
+    color: var(--highlight-color);
+    margin-bottom: 30px;
+}
+
+.pref-section {
+    background: var(--bg-secondary);
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.pref-section h2 {
+    margin-bottom: 20px;
+    color: var(--text-color);
+    font-size: 1.2rem;
+}
+
+.pref-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pref-row:last-child {
+    border-bottom: none;
+}
+
+.pref-label {
+    color: var(--text-color);
+}
+
+.pref-description {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 5px;
+}
+
+.pref-row select,
+.pref-row input[type="number"] {
+    padding: 8px 15px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    color: var(--text-color);
+    min-width: 150px;
+}
+
+.pref-row select:focus,
+.pref-row input:focus {
+    outline: none;
+    border-color: var(--highlight-color);
+}
+
+.engine-toggles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.engine-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: var(--bg-color);
+    border-radius: 5px;
+}
+
+.engine-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--highlight-color);
+}
+
+.save-button {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    background: var(--highlight-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.save-button:hover {
+    background: #ff5a7a;
+}
+{% endblock %}
+
+{% block content %}
+<div class="preferences-container">
+    <h1>Preferences</h1>
+
+    <form method="post" action="/preferences">
+        <div class="pref-section">
+            <h2>General</h2>
+
+            <div class="pref-row">
+                <div>
+                    <div class="pref-label">Theme</div>
+                    <div class="pref-description">Choose the appearance of the interface</div>
+                </div>
+                <select name="theme">
+                    {% for theme in themes %}
+                    <option value="{{ theme }}">{{ theme | capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="pref-row">
+                <div>
+                    <div class="pref-label">Language</div>
+                    <div class="pref-description">Preferred language for search results</div>
+                </div>
+                <select name="language">
+                    <option value="all">All languages</option>
+                    <option value="en">English</option>
+                    <option value="de">Deutsch</option>
+                    <option value="fr">Français</option>
+                    <option value="es">Español</option>
+                    <option value="it">Italiano</option>
+                    <option value="pt">Português</option>
+                    <option value="nl">Nederlands</option>
+                    <option value="pl">Polski</option>
+                    <option value="ru">Русский</option>
+                    <option value="ja">日本語</option>
+                    <option value="zh">中文</option>
+                </select>
+            </div>
+
+            <div class="pref-row">
+                <div>
+                    <div class="pref-label">Safe Search</div>
+                    <div class="pref-description">Filter explicit content from results</div>
+                </div>
+                <select name="safesearch">
+                    <option value="0">Off</option>
+                    <option value="1">Moderate</option>
+                    <option value="2">Strict</option>
+                </select>
+            </div>
+
+            <div class="pref-row">
+                <div>
+                    <div class="pref-label">Results per page</div>
+                    <div class="pref-description">Number of results to show</div>
+                </div>
+                <input type="number" name="results_per_page" value="10" min="5" max="50">
+            </div>
+        </div>
+
+        <div class="pref-section">
+            <h2>Default Categories</h2>
+            <div class="engine-toggles">
+                {% for category in categories %}
+                <label class="engine-toggle">
+                    <input type="checkbox" name="categories" value="{{ category }}" {% if category == "general" %}checked{% endif %}>
+                    <span>{{ category | capitalize }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="pref-section">
+            <h2>Search Engines</h2>
+            <div class="engine-toggles">
+                {% for engine in engines %}
+                <label class="engine-toggle">
+                    <input type="checkbox" name="engines" value="{{ engine }}" checked>
+                    <span>{{ engine }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <button type="submit" class="save-button">Save Preferences</button>
+    </form>
+</div>
+{% endblock %}

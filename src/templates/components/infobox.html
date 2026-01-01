@@ -1,0 +1,30 @@
+<div class="infobox" id="infobox-{{ infobox.id }}">
+    {% if infobox.img_src %}
+    <img src="{{ infobox.img_src }}" alt="{{ infobox.title }}" class="infobox-image" loading="lazy">
+    {% endif %}
+
+    <h2 class="infobox-title">{{ infobox.title }}</h2>
+
+    {% if infobox.content %}
+    <div class="infobox-content">{{ infobox.content | safe }}</div>
+    {% endif %}
+
+    {% if infobox.attributes | length > 0 %}
+    <dl class="infobox-attributes">
+        {% for key, value in infobox.attributes %}
+        <dt>{{ key }}</dt>
+        <dd>{{ value }}</dd>
+        {% endfor %}
+    </dl>
+    {% endif %}
+
+    {% if infobox.urls | length > 0 %}
+    <div class="infobox-urls">
+        {% for title, url in infobox.urls %}
+        <a href="{{ url }}" rel="noopener noreferrer">{{ title }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <span class="infobox-engine">{{ infobox.engine }}</span>
+</div>

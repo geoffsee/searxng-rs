@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}{{ query }} - {{ instance_name }}{% endblock %}
+
+{% block extra_styles %}
+.search-header {
+    margin-bottom: 30px;
+}
+
+.result-count {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.results {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.result {
+    padding-bottom: 25px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.result:last-child {
+    border-bottom: none;
+}
+
+.result-url {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 5px;
+    word-break: break-all;
+}
+
+.result-title {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+}
+
+.result-title a {
+    color: var(--link-color);
+}
+
+.result-title a:hover {
+    text-decoration: underline;
+}
+
+.result-content {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.result-engines {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.result-engine {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--accent-color);
+    border-radius: 10px;
+    margin-right: 5px;
+}
+
+.answers {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    border-left: 4px solid var(--highlight-color);
+}
+
+.answer {
+    font-size: 1.1rem;
+}
+
+.suggestions {
+    margin-bottom: 30px;
+}
+
+.suggestions h3 {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.suggestion-list {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.suggestion {
+    padding: 5px 15px;
+    background: var(--bg-secondary);
+    border-radius: 15px;
+    font-size: 0.9rem;
+}
+
+.infobox {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.infobox h2 {
+    margin-bottom: 15px;
+    color: var(--highlight-color);
+}
+
+.infobox-content {
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.infobox-image {
+    max-width: 200px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 40px;
+}
+
+.pagination a,
+.pagination span {
+    padding: 10px 20px;
+    background: var(--bg-secondary);
+    border-radius: 5px;
+    color: var(--text-color);
+}
+
+.pagination a:hover {
+    background: var(--accent-color);
+    text-decoration: none;
+}
+
+.pagination .current {
+    background: var(--highlight-color);
+}
+
+.no-results {
+    text-align: center;
+    padding: 50px 0;
+    color: var(--text-muted);
+}
+
+.no-results h2 {
+    margin-bottom: 10px;
+}
+
+.engine-errors {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 30px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.engine-errors h4 {
+    margin-bottom: 10px;
+    color: var(--highlight-color);
+}
+{% endblock %}
+
+{% block content %}
+<div class="search-header">
+    <form action="/search" method="get" class="search-form">
+        <input
+            type="text"
+            name="q"
+            class="search-input"
+            value="{{ query }}"
+            autocomplete="off"
+        >
+        <button type="submit" class="search-button">Search</button>
+    </form>
+
+    <div class="categories">
+        {% for category in categories %}
+        <a href="/search?q={{ query | urlencode }}&categories={{ category }}" class="category-btn">
+            {{ category | capitalize }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+{% if answers | length > 0 %}
+<div class="answers">
+    {% for answer in answers %}
+    <div class="answer">{{ answer.answer }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if infoboxes | length > 0 %}
+{% for infobox in infoboxes %}
+<div class="infobox">
+    {% if infobox.img_src %}
+    <img src="{{ infobox.img_src }}" alt="{{ infobox.title }}" class="infobox-image">
+    {% endif %}
+    <h2>{{ infobox.title }}</h2>
+    <div class="infobox-content">{{ infobox.content | safe }}</div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% if suggestions | length > 0 %}
+<div class="suggestions">
+    <h3>Related searches:</h3>
+    <div class="suggestion-list">
+        {% for suggestion in suggestions %}
+        <a href="/search?q={{ suggestion.text | urlencode }}" class="suggestion">{{ suggestion.text }}</a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<p class="result-count">
+    {% if result_count > 0 %}
+    Found {{ result_count }} results
+    {% endif %}
+</p>
+
+{% if results | length > 0 %}
+<div class="results">
+    {% for result in results %}
+    <article class="result">
+        <div class="result-url">{{ result.url }}</div>
+        <h2 class="result-title">
+            <a href="{{ result.url }}" rel="noopener noreferrer">{{ result.title }}</a>
+        </h2>
+        {% if result.content %}
+        <p class="result-content">{{ result.content }}</p>
+        {% endif %}
+        <div class="result-engines">
+            {% for engine in result.engines %}
+            <span class="result-engine">{{ engine }}</span>
+            {% endfor %}
+        </div>
+    </article>
+    {% endfor %}
+</div>
+
+<div class="pagination">
+    {% if pageno > 1 %}
+    <a href="/search?q={{ query | urlencode }}&pageno={{ pageno - 1 }}">Previous</a>
+    {% endif %}
+
+    <span class="current">Page {{ pageno }}</span>
+
+    {% if results | length >= 10 %}
+    <a href="/search?q={{ query | urlencode }}&pageno={{ pageno + 1 }}">Next</a>
+    {% endif %}
+</div>
+{% else %}
+<div class="no-results">
+    <h2>No results found</h2>
+    <p>Try different keywords or check your spelling</p>
+</div>
+{% endif %}
+
+{% if unresponsive_engines | length > 0 %}
+<div class="engine-errors">
+    <h4>Some engines did not respond:</h4>
+    <p>
+        {% for engine in unresponsive_engines %}
+        {{ engine.name }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+    </p>
+</div>
+{% endif %}
+{% endblock %}

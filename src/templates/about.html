@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}About - {{ instance_name }}{% endblock %}
+
+{% block extra_styles %}
+.about-container {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.about-container h1 {
+    color: var(--highlight-color);
+    margin-bottom: 30px;
+}
+
+.about-container h2 {
+    margin-top: 30px;
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.about-container p {
+    margin-bottom: 15px;
+    color: var(--text-muted);
+}
+
+.about-container ul {
+    list-style: none;
+    padding: 0;
+}
+
+.about-container li {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+
+.about-container li:last-child {
+    border-bottom: none;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.feature {
+    background: var(--bg-secondary);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.feature h3 {
+    color: var(--highlight-color);
+    margin-bottom: 10px;
+}
+
+.feature p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.engines-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.engine-badge {
+    padding: 5px 15px;
+    background: var(--accent-color);
+    border-radius: 15px;
+    font-size: 0.85rem;
+}
+{% endblock %}
+
+{% block content %}
+<div class="about-container">
+    <h1>About {{ instance_name }}</h1>
+
+    <p>
+        {{ instance_name }} is a privacy-respecting metasearch engine that aggregates results
+        from multiple search engines without tracking you.
+    </p>
+
+    <p>
+        This instance is powered by <strong>SearXNG-RS</strong>, a complete rewrite of SearXNG
+        in the Rust programming language, providing improved performance, memory safety, and reliability.
+    </p>
+
+    <h2>Features</h2>
+    <div class="feature-grid">
+        <div class="feature">
+            <h3>Privacy First</h3>
+            <p>No tracking, no profiling. Your searches stay yours.</p>
+        </div>
+        <div class="feature">
+            <h3>Multiple Sources</h3>
+            <p>Results aggregated from many search engines for better coverage.</p>
+        </div>
+        <div class="feature">
+            <h3>Fast & Efficient</h3>
+            <p>Built in Rust for maximum performance and minimal resource usage.</p>
+        </div>
+        <div class="feature">
+            <h3>Open Source</h3>
+            <p>Fully transparent and auditable code. Trust through verification.</p>
+        </div>
+    </div>
+
+    <h2>Enabled Search Engines</h2>
+    <div class="engines-list">
+        {% for engine in engines %}
+        <span class="engine-badge">{{ engine }}</span>
+        {% endfor %}
+    </div>
+
+    <h2>Version</h2>
+    <p>SearXNG-RS v{{ version }}</p>
+
+    <h2>Links</h2>
+    <ul>
+        <li><a href="https://github.com/searxng/searxng">Original SearXNG Project</a></li>
+        <li><a href="https://docs.searxng.org/">SearXNG Documentation</a></li>
+    </ul>
+</div>
+{% endblock %}

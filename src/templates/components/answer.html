@@ -1,0 +1,7 @@
+<div class="answer-box">
+    <div class="answer-content">{{ answer.answer }}</div>
+    {% if answer.url %}
+    <a href="{{ answer.url }}" class="answer-source">Learn more</a>
+    {% endif %}
+    <span class="answer-engine">{{ answer.engine }}</span>
+</div>

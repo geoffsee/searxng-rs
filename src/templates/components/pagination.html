@@ -1,0 +1,21 @@
+<nav class="pagination" aria-label="Search results pagination">
+    {% if pageno > 1 %}
+    <a href="{{ base_url }}?q={{ query | urlencode }}&pageno={{ pageno - 1 }}" class="pagination-prev">
+        &laquo; Previous
+    </a>
+    {% endif %}
+
+    {% for page in pages %}
+    {% if page == pageno %}
+    <span class="pagination-current">{{ page }}</span>
+    {% else %}
+    <a href="{{ base_url }}?q={{ query | urlencode }}&pageno={{ page }}">{{ page }}</a>
+    {% endif %}
+    {% endfor %}
+
+    {% if has_more %}
+    <a href="{{ base_url }}?q={{ query | urlencode }}&pageno={{ pageno + 1 }}" class="pagination-next">
+        Next &raquo;
+    </a>
+    {% endif %}
+</nav>

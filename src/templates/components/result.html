@@ -1,0 +1,17 @@
+<article class="result">
+    <div class="result-url">{{ result.url }}</div>
+    <h2 class="result-title">
+        <a href="{{ result.url }}" rel="noopener noreferrer">{{ result.title }}</a>
+    </h2>
+    {% if result.content %}
+    <p class="result-content">{{ result.content }}</p>
+    {% endif %}
+    {% if result.metadata.thumbnail %}
+    <img src="{{ result.metadata.thumbnail }}" alt="" class="result-thumbnail" loading="lazy">
+    {% endif %}
+    <div class="result-engines">
+        {% for engine in result.engines %}
+        <span class="result-engine">{{ engine }}</span>
+        {% endfor %}
+    </div>
+</article>
