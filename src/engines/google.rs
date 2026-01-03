@@ -163,6 +163,7 @@ impl Engine for Google {
 }
 
 /// Google Images search engine
+/// Uses Google's internal JSON API for better results
 pub struct GoogleImages {
     base_url: String,
 }
@@ -190,14 +191,22 @@ impl Engine for GoogleImages {
         EngineAbout::new()
             .website("https://images.google.com")
             .official_api(false)
-            .results_format("HTML")
+            .results_format("JSON")
     }
 
     fn categories(&self) -> Vec<&str> {
         vec!["images"]
     }
 
+    fn supports_paging(&self) -> bool {
+        true
+    }
+
     fn supports_safesearch(&self) -> bool {
+        true
+    }
+
+    fn supports_time_range(&self) -> bool {
         true
     }
 
@@ -206,13 +215,39 @@ impl Engine for GoogleImages {
         query_params.insert("q".to_string(), params.query.clone());
         query_params.insert("tbm".to_string(), "isch".to_string());
         query_params.insert("hl".to_string(), params.lang.clone());
+        query_params.insert("asearch".to_string(), "isch".to_string());
 
-        if params.safesearch >= 2 {
+        // Use JSON format with pagination (0-indexed)
+        let page_index = params.pageno.saturating_sub(1);
+        query_params.insert(
+            "async".to_string(),
+            format!("_fmt:json,p:1,ijn:{}", page_index),
+        );
+
+        // Safe search
+        if params.safesearch >= 1 {
             query_params.insert("safe".to_string(), "active".to_string());
+        }
+
+        // Time range
+        if let Some(ref time_range) = params.time_range {
+            let tbs = match time_range {
+                crate::query::TimeRange::Day => "qdr:d",
+                crate::query::TimeRange::Week => "qdr:w",
+                crate::query::TimeRange::Month => "qdr:m",
+                crate::query::TimeRange::Year => "qdr:y",
+            };
+            query_params.insert("tbs".to_string(), tbs.to_string());
         }
 
         let mut request = EngineRequest::get(&self.base_url);
         request.params = query_params;
+
+        // Use Android app user agent for better results
+        request.headers.insert(
+            "User-Agent".to_string(),
+            "NSTN/3.60.474802233.release Dalvik/2.1.0 (Linux; U; Android 12; US) gzip".to_string(),
+        );
 
         Ok(request)
     }
@@ -222,13 +257,117 @@ impl Engine for GoogleImages {
             return Err(anyhow::anyhow!("HTTP error: {}", response.status));
         }
 
-        // Parse image results from the HTML
-        let document = Html::parse_document(&response.text);
-        let mut results = Vec::new();
+        if response.is_captcha() {
+            return Err(anyhow::anyhow!("CAPTCHA detected"));
+        }
 
-        // Google images uses complex JSON embedded in the page
-        // For now, return empty - would need more complex parsing
-        // TODO: Implement proper Google Images parsing
+        // Find the JSON data starting with {"ischj":
+        let json_start = response.text.find("{\"ischj\":");
+        if json_start.is_none() {
+            // Fallback: try to find any JSON object
+            return Ok(EngineResults::with_results(vec![]));
+        }
+
+        let json_text = &response.text[json_start.unwrap()..];
+        let json_data: serde_json::Value = serde_json::from_str(json_text)
+            .map_err(|e| anyhow::anyhow!("Failed to parse JSON: {}", e))?;
+
+        let mut results = Vec::new();
+        let mut position = 1u32;
+
+        // Parse the image metadata
+        if let Some(metadata) = json_data
+            .get("ischj")
+            .and_then(|v| v.get("metadata"))
+            .and_then(|v| v.as_array())
+        {
+            for item in metadata {
+                // Get the result info
+                let result_info = match item.get("result") {
+                    Some(r) => r,
+                    None => continue,
+                };
+
+                // Get URL
+                let url = result_info
+                    .get("referrer_url")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string();
+
+                if url.is_empty() {
+                    continue;
+                }
+
+                // Get title
+                let title = result_info
+                    .get("page_title")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default()
+                    .to_string();
+
+                // Get content/snippet
+                let content = item
+                    .get("text_in_grid")
+                    .and_then(|v| v.get("snippet"))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+
+                // Get image source
+                let img_src = item
+                    .get("original_image")
+                    .and_then(|v| v.get("url"))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+
+                // Get thumbnail
+                let thumbnail = item
+                    .get("thumbnail")
+                    .and_then(|v| v.get("url"))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+
+                // Get resolution
+                let resolution = item.get("original_image").and_then(|img| {
+                    let width = img.get("width").and_then(|v| v.as_u64());
+                    let height = img.get("height").and_then(|v| v.as_u64());
+                    match (width, height) {
+                        (Some(w), Some(h)) => Some(format!("{} x {}", w, h)),
+                        _ => None,
+                    }
+                });
+
+                // Get source site
+                let source = result_info
+                    .get("site_title")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+
+                // Build result
+                let mut result = Result::new(url, title, self.name().to_string());
+                result.result_type = crate::results::ResultType::Image;
+                result = result.with_position(position);
+
+                if let Some(c) = content {
+                    result = result.with_content(c);
+                }
+
+                result.metadata.img_src = img_src;
+                result.metadata.thumbnail = thumbnail;
+                result.metadata.template = Some("images.html".to_string());
+
+                // Add resolution and source to content if available
+                if let Some(res) = resolution {
+                    result.metadata.file_size = Some(res);
+                }
+                if let Some(src) = source {
+                    result.metadata.author = Some(src);
+                }
+
+                results.push(result);
+                position += 1;
+            }
+        }
 
         Ok(EngineResults::with_results(results))
     }

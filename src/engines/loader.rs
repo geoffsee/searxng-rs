@@ -2,7 +2,7 @@
 
 use super::registry::EngineRegistry;
 use super::traits::Engine;
-use super::{bing, brave, duckduckgo, google, wikipedia};
+use super::{arxiv, bing, brave, duckduckgo, github, google, stackoverflow, wikipedia, youtube};
 use crate::config::{EngineConfig, Settings};
 use anyhow::Result;
 use std::sync::Arc;
@@ -48,6 +48,10 @@ impl EngineLoader {
             "bing_images" => Box::new(bing::BingImages::new()),
             "brave" => Box::new(brave::Brave::new()),
             "wikipedia" => Box::new(wikipedia::Wikipedia::new()),
+            "youtube" => Box::new(youtube::YouTube::new()),
+            "github" => Box::new(github::GitHub::new()),
+            "stackoverflow" => Box::new(stackoverflow::StackOverflow::new()),
+            "arxiv" => Box::new(arxiv::ArXiv::new()),
             _ => {
                 return Err(anyhow::anyhow!("Unknown engine type: {}", engine_type));
             }
@@ -73,6 +77,10 @@ impl EngineLoader {
             "bing_images",
             "brave",
             "wikipedia",
+            "youtube",
+            "github",
+            "stackoverflow",
+            "arxiv",
         ]
     }
 }

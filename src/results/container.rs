@@ -202,15 +202,70 @@ impl ResultContainer {
 
     /// Create a normalized URL hash for deduplication
     fn url_hash(url: &str) -> String {
-        // Normalize URL for better deduplication
-        let url = url
-            .trim_end_matches('/')
-            .replace("https://", "")
-            .replace("http://", "")
-            .replace("www.", "");
+        // Try to parse the URL for better normalization
+        if let Ok(parsed) = url::Url::parse(url) {
+            let mut normalized = String::new();
 
-        // Use the normalized URL as the hash key
-        url.to_lowercase()
+            // Use host without www prefix
+            if let Some(host) = parsed.host_str() {
+                let host = host.strip_prefix("www.").unwrap_or(host);
+                normalized.push_str(host);
+            }
+
+            // Add path, removing trailing slashes
+            let path = parsed.path().trim_end_matches('/');
+            if !path.is_empty() && path != "/" {
+                normalized.push_str(path);
+            }
+
+            // Sort and filter query parameters (remove tracking params)
+            let tracking_params = [
+                "utm_source",
+                "utm_medium",
+                "utm_campaign",
+                "utm_term",
+                "utm_content",
+                "fbclid",
+                "gclid",
+                "ref",
+                "source",
+                "mc_cid",
+                "mc_eid",
+            ];
+
+            let mut query_pairs: Vec<(String, String)> = parsed
+                .query_pairs()
+                .filter(|(key, _)| !tracking_params.contains(&key.as_ref()))
+                .map(|(k, v)| (k.to_lowercase(), v.to_string()))
+                .collect();
+
+            // Sort query params for consistent hashing
+            query_pairs.sort_by(|a, b| a.0.cmp(&b.0));
+
+            if !query_pairs.is_empty() {
+                normalized.push('?');
+                for (i, (key, value)) in query_pairs.iter().enumerate() {
+                    if i > 0 {
+                        normalized.push('&');
+                    }
+                    normalized.push_str(key);
+                    if !value.is_empty() {
+                        normalized.push('=');
+                        normalized.push_str(value);
+                    }
+                }
+            }
+
+            // Ignore fragment identifiers for deduplication
+            normalized.to_lowercase()
+        } else {
+            // Fallback: simple normalization
+            url.trim_end_matches('/')
+                .replace("https://", "")
+                .replace("http://", "")
+                .replace("www.", "")
+                .to_lowercase()
+        }
     }
 }
 
@@ -268,5 +323,75 @@ mod tests {
 
         let results = container.get_ordered_results();
         assert_eq!(results[0].url, "https://second.com");
+    }
+
+    #[test]
+    fn test_url_hash_normalization() {
+        // Test www prefix removal
+        assert_eq!(
+            ResultContainer::url_hash("https://www.example.com"),
+            ResultContainer::url_hash("https://example.com")
+        );
+
+        // Test http/https equivalence
+        assert_eq!(
+            ResultContainer::url_hash("http://example.com/page"),
+            ResultContainer::url_hash("https://example.com/page")
+        );
+
+        // Test trailing slash removal
+        assert_eq!(
+            ResultContainer::url_hash("https://example.com/page/"),
+            ResultContainer::url_hash("https://example.com/page")
+        );
+
+        // Test case insensitivity
+        assert_eq!(
+            ResultContainer::url_hash("https://Example.COM/Page"),
+            ResultContainer::url_hash("https://example.com/page")
+        );
+    }
+
+    #[test]
+    fn test_tracking_param_removal() {
+        let container = ResultContainer::new();
+
+        // Same URL with different tracking parameters should deduplicate
+        let r1 = Result::new(
+            "https://example.com/article?id=123".to_string(),
+            "Article".to_string(),
+            "google".to_string(),
+        )
+        .with_position(1);
+
+        let r2 = Result::new(
+            "https://example.com/article?id=123&utm_source=twitter".to_string(),
+            "Article".to_string(),
+            "bing".to_string(),
+        )
+        .with_position(2);
+
+        container.add_result(r1);
+        container.add_result(r2);
+
+        assert_eq!(container.result_count(), 1);
+    }
+
+    #[test]
+    fn test_query_param_ordering() {
+        // Same params in different order should produce same hash
+        assert_eq!(
+            ResultContainer::url_hash("https://example.com?a=1&b=2"),
+            ResultContainer::url_hash("https://example.com?b=2&a=1")
+        );
+    }
+
+    #[test]
+    fn test_fragment_ignored() {
+        // Fragment identifiers should be ignored
+        assert_eq!(
+            ResultContainer::url_hash("https://example.com/page"),
+            ResultContainer::url_hash("https://example.com/page#section1")
+        );
     }
 }

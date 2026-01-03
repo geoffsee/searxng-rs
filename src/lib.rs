@@ -3,6 +3,7 @@
 //! This is a complete rewrite of SearXNG (originally Python) in Rust,
 //! providing improved performance, memory safety, and type safety.
 
+pub mod autocomplete;
 pub mod cache;
 pub mod config;
 pub mod engines;

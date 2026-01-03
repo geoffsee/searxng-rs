@@ -17,6 +17,8 @@ pub struct AppState {
     pub search: Arc<Search>,
     /// Template renderer
     pub templates: Arc<super::Templates>,
+    /// HTTP client for autocomplete and other requests
+    pub http_client: Arc<HttpClient>,
 }
 
 impl AppState {
@@ -28,6 +30,7 @@ impl AppState {
     ) -> anyhow::Result<Self> {
         let settings = Arc::new(settings);
         let registry = Arc::new(registry);
+        let http_client = Arc::new(client.clone());
         let search = Arc::new(Search::new(client, registry.clone()));
         let templates = Arc::new(super::Templates::new()?);
 
@@ -36,6 +39,7 @@ impl AppState {
             registry,
             search,
             templates,
+            http_client,
         })
     }
 
@@ -47,5 +51,10 @@ impl AppState {
     /// Check if instance is public
     pub fn is_public(&self) -> bool {
         self.settings.server.public_instance
+    }
+
+    /// Get configured autocomplete backend name
+    pub fn autocomplete_backend(&self) -> Option<&str> {
+        self.settings.search.autocomplete.as_deref()
     }
 }

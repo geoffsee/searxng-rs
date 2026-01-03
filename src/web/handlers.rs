@@ -279,15 +279,44 @@ pub async fn health() -> impl IntoResponse {
 #[derive(Debug, Deserialize)]
 pub struct AutocompleteParams {
     pub q: String,
+    /// Override autocomplete backend (optional)
+    pub backend: Option<String>,
 }
 
 pub async fn autocomplete(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Query(params): Query<AutocompleteParams>,
 ) -> impl IntoResponse {
-    // TODO: Implement autocomplete backends
-    let suggestions: Vec<String> = vec![];
-    Json(vec![params.q, suggestions.join(",")])
+    // Get the backend to use (from query param or config)
+    let backend_name = params
+        .backend
+        .as_deref()
+        .or_else(|| state.autocomplete_backend())
+        .unwrap_or("duckduckgo");
+
+    // Get language from settings
+    let lang = &state.settings.ui.default_locale;
+
+    // Fetch suggestions
+    let suggestions = crate::autocomplete::fetch_suggestions(
+        &state.http_client,
+        backend_name,
+        &params.q,
+        lang,
+    )
+    .await
+    .unwrap_or_default();
+
+    // Return in OpenSearch format: [query, [suggestions...]]
+    Json(vec![
+        serde_json::Value::String(params.q),
+        serde_json::Value::Array(
+            suggestions
+                .into_iter()
+                .map(serde_json::Value::String)
+                .collect(),
+        ),
+    ])
 }
 
 /// Robots.txt handler
@@ -303,8 +332,16 @@ pub async fn robots_txt(State(state): State<AppState>) -> impl IntoResponse {
     )
 }
 
+/// Favicon SVG data (SearXNG logo)
+const FAVICON_SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 92 92"><g transform="translate(-40.921 -17.417)"><circle cx="75.921" cy="53.903" r="30" style="fill:none;stroke:#3050ff;stroke-width:10"/><path d="M67.515 37.915a18 18 0 0 1 21.051 3.313 18 18 0 0 1 3.138 21.078" style="fill:none;stroke:#3050ff;stroke-width:5"/><rect width="18.846" height="39.963" x="3.706" y="122.09" ry="0" style="fill:#3050ff" transform="rotate(-46.235)"/></g></svg>"#;
+
 /// Favicon handler
 pub async fn favicon() -> impl IntoResponse {
-    // Return empty 204 for now - would serve actual favicon
-    StatusCode::NO_CONTENT
+    (
+        [
+            (axum::http::header::CONTENT_TYPE, "image/svg+xml"),
+            (axum::http::header::CACHE_CONTROL, "public, max-age=86400"),
+        ],
+        FAVICON_SVG,
+    )
 }
