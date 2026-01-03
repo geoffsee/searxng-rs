@@ -24,21 +24,42 @@ impl DuckDuckGo {
         let document = Html::parse_document(html);
         let mut results = Vec::new();
 
-        // DuckDuckGo HTML result selectors
-        let result_selector = Selector::parse("div.result").unwrap();
-        let title_selector = Selector::parse("a.result__a").unwrap();
-        let snippet_selector = Selector::parse("a.result__snippet").unwrap();
+        // DuckDuckGo HTML result selectors - matching reference SearXNG implementation
+        // Reference uses: //div[@id="links"]/div[contains(@class, "web-result")]
+        let links_selector = Selector::parse("#links").unwrap();
+        let result_selector =
+            Selector::parse(r#"div[class*="web-result"], div.result"#).unwrap();
+        // Title is in h2/a
+        let title_link_selector = Selector::parse("h2 a, a.result__a").unwrap();
+        // Content/snippet
+        let snippet_selector =
+            Selector::parse(r#"a[class*="result__snippet"], a.result__snippet"#).unwrap();
 
         let mut position = 1u32;
 
-        for element in document.select(&result_selector) {
-            // Get title and URL
-            let title_elem = match element.select(&title_selector).next() {
+        // First try to find the #links container
+        let search_area = document
+            .select(&links_selector)
+            .next()
+            .map(|e| e.html())
+            .unwrap_or_else(|| document.html());
+
+        let search_doc = Html::parse_document(&search_area);
+
+        for element in search_doc.select(&result_selector) {
+            // Skip ad results
+            let class_attr = element.value().attr("class").unwrap_or("");
+            if class_attr.contains("result--ad") {
+                continue;
+            }
+
+            // Get title and URL from h2/a
+            let title_elem = match element.select(&title_link_selector).next() {
                 Some(t) => t,
                 None => continue,
             };
 
-            let title = title_elem.text().collect::<String>();
+            let title = title_elem.text().collect::<String>().trim().to_string();
             if title.is_empty() {
                 continue;
             }
@@ -49,8 +70,8 @@ impl DuckDuckGo {
                 .map(|h| h.to_string())
                 .unwrap_or_default();
 
-            // Skip DuckDuckGo internal links
-            if url.is_empty() || url.contains("duckduckgo.com") {
+            // Skip DuckDuckGo internal links and empty URLs
+            if url.is_empty() || url.contains("duckduckgo.com") || !url.starts_with("http") {
                 continue;
             }
 
@@ -58,7 +79,8 @@ impl DuckDuckGo {
             let snippet = element
                 .select(&snippet_selector)
                 .next()
-                .map(|s| s.text().collect::<String>());
+                .map(|s| s.text().collect::<String>().trim().to_string())
+                .filter(|s| !s.is_empty());
 
             let mut result = Result::new(url, title, self.name().to_string());
             if let Some(content) = snippet {
@@ -107,14 +129,27 @@ impl Engine for DuckDuckGo {
     fn request(&self, params: &RequestParams) -> AnyhowResult<EngineRequest> {
         let mut form_data = HashMap::new();
         form_data.insert("q".to_string(), params.query.clone());
-        form_data.insert("b".to_string(), String::new());
-        form_data.insert("kl".to_string(), params.lang.clone());
 
-        // Pagination
-        if params.pageno > 1 {
-            let offset = (params.pageno - 1) * 30;
+        // First page uses empty 'b', subsequent pages need pagination params
+        if params.pageno == 1 {
+            form_data.insert("b".to_string(), String::new());
+        } else {
+            // Page 2 = 10, Page 3+ = 10 + (n-2)*15
+            let offset = 10 + (params.pageno.saturating_sub(2) as i32 * 15);
             form_data.insert("s".to_string(), offset.to_string());
+            form_data.insert("dc".to_string(), (offset + 1).to_string());
+            form_data.insert("v".to_string(), "l".to_string());
+            form_data.insert("o".to_string(), "json".to_string());
+            form_data.insert("api".to_string(), "d.js".to_string());
         }
+
+        // Region/language - use empty for 'all'
+        let kl = if params.lang == "all" || params.lang.is_empty() {
+            String::new()
+        } else {
+            params.lang.clone()
+        };
+        form_data.insert("kl".to_string(), kl);
 
         // Safe search
         let kp = match params.safesearch {
@@ -124,7 +159,17 @@ impl Engine for DuckDuckGo {
         };
         form_data.insert("kp".to_string(), kp.to_string());
 
-        let request = EngineRequest::post(&self.html_url).form(form_data);
+        let mut request = EngineRequest::post(&self.html_url).form(form_data);
+
+        // Add headers matching reference SearXNG implementation
+        // These are important for DDG's bot detection
+        request = request
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Referer", &self.html_url)
+            .header("Sec-Fetch-Dest", "document")
+            .header("Sec-Fetch-Mode", "navigate")
+            .header("Sec-Fetch-Site", "same-origin")
+            .header("Sec-Fetch-User", "?1");
 
         Ok(request)
     }

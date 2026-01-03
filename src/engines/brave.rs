@@ -22,40 +22,70 @@ impl Brave {
         let document = Html::parse_document(html);
         let mut results = Vec::new();
 
-        // Brave result selectors
-        let result_selector = Selector::parse("div.snippet").unwrap();
-        let title_selector = Selector::parse("a.result-header").unwrap();
-        let snippet_selector = Selector::parse("p.snippet-description").unwrap();
+        // Brave result selectors - matching reference SearXNG implementation
+        // The reference uses: div[contains(@class, 'snippet ')]
+        // We also check for fdb class which Brave uses for result cards
+        let result_selector =
+            Selector::parse(r#"div[class*="snippet fdb"], div[class*="snippet "], div.snippet"#)
+                .unwrap();
+        // Title is in a div with class containing 'title'
+        let title_selector = Selector::parse(r#"div[class*="title"], span[class*="title"]"#).unwrap();
+        let link_selector = Selector::parse("a").unwrap();
+        // Content is in a div with class 'content' (but not 'site-name-content')
+        let snippet_selector =
+            Selector::parse(r#"div[class*="snippet-content"], div.content, p[class*="snippet"]"#)
+                .unwrap();
 
         let mut position = 1u32;
+        let mut seen_urls = std::collections::HashSet::new();
 
         for element in document.select(&result_selector) {
-            // Get title and URL
-            let title_elem = match element.select(&title_selector).next() {
-                Some(t) => t,
-                None => continue,
-            };
+            // Get URL first - find the main anchor link
+            let url = element
+                .select(&link_selector)
+                .find_map(|a| {
+                    let href = a.value().attr("href")?;
+                    // Skip internal Brave links and partial URLs (likely ads)
+                    if href.starts_with("http") && !href.contains("brave.com") {
+                        Some(href.to_string())
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_default();
 
-            let title = title_elem.text().collect::<String>().trim().to_string();
+            if url.is_empty() {
+                continue;
+            }
+
+            // Skip duplicates
+            if seen_urls.contains(&url) {
+                continue;
+            }
+            seen_urls.insert(url.clone());
+
+            // Get title from title div
+            let title = element
+                .select(&title_selector)
+                .next()
+                .map(|t| t.text().collect::<String>().trim().to_string())
+                .unwrap_or_default();
+
             if title.is_empty() {
                 continue;
             }
 
-            let url = title_elem
-                .value()
-                .attr("href")
-                .map(|h| h.to_string())
-                .unwrap_or_default();
-
-            if url.is_empty() || url.starts_with('/') {
-                continue;
-            }
-
-            // Get snippet
+            // Get snippet/content
             let snippet = element
                 .select(&snippet_selector)
                 .next()
-                .map(|s| s.text().collect::<String>().trim().to_string());
+                .map(|s| {
+                    s.text()
+                        .collect::<String>()
+                        .trim()
+                        .to_string()
+                })
+                .filter(|s| !s.is_empty());
 
             let mut result = Result::new(url, title, self.name().to_string());
             if let Some(content) = snippet {
@@ -110,9 +140,9 @@ impl Engine for Brave {
         query_params.insert("q".to_string(), params.query.clone());
         query_params.insert("source".to_string(), "web".to_string());
 
-        // Pagination
+        // Pagination - Brave uses 'offset' parameter (0-indexed page number)
         if params.pageno > 1 {
-            let offset = (params.pageno - 1) * 20;
+            let offset = params.pageno - 1;
             query_params.insert("offset".to_string(), offset.to_string());
         }
 
@@ -127,16 +157,22 @@ impl Engine for Brave {
             query_params.insert("tf".to_string(), tf.to_string());
         }
 
-        // Safe search
-        let safesearch = match params.safesearch {
+        let mut request = EngineRequest::get(&self.base_url);
+        request.params = query_params;
+
+        // Add cookies matching reference SearXNG implementation
+        let safesearch_cookie = match params.safesearch {
             2 => "strict",
             1 => "moderate",
             _ => "off",
         };
-        query_params.insert("safesearch".to_string(), safesearch.to_string());
+        request = request
+            .cookie("safesearch", safesearch_cookie)
+            .cookie("useLocation", "0")
+            .cookie("summarizer", "0");
 
-        let mut request = EngineRequest::get(&self.base_url);
-        request.params = query_params;
+        // Brave prefers gzip, deflate (not brotli)
+        request = request.header("Accept-Encoding", "gzip, deflate");
 
         Ok(request)
     }

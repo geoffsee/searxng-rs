@@ -22,31 +22,65 @@ impl Google {
         let document = Html::parse_document(html);
         let mut results = Vec::new();
 
-        // Main result selector
-        let result_selector = Selector::parse("div.g").unwrap();
+        // Primary selector: Google's modern result container with jscontroller attribute
+        // This matches the reference SearXNG Python implementation
+        let result_selector =
+            Selector::parse(r#"div[jscontroller*="SC7lYd"], div.g, div[data-hveid] > div"#)
+                .unwrap();
         let title_selector = Selector::parse("h3").unwrap();
         let link_selector = Selector::parse("a").unwrap();
-        let snippet_selector = Selector::parse("div.VwiC3b, span.aCOpRe").unwrap();
+        // Modern Google uses data-sncf attribute for content containers
+        let snippet_selector =
+            Selector::parse(r#"div[data-sncf*="1"], div.VwiC3b, span.aCOpRe, div[data-snf]"#)
+                .unwrap();
 
         let mut position = 1u32;
+        let mut seen_urls = std::collections::HashSet::new();
 
         for element in document.select(&result_selector) {
-            // Get title
+            // Get title - look for h3 inside an anchor first (modern structure)
             let title = element
-                .select(&title_selector)
-                .next()
-                .map(|t| t.text().collect::<String>())
-                .unwrap_or_default();
+                .select(&link_selector)
+                .find_map(|a| {
+                    a.select(&title_selector)
+                        .next()
+                        .map(|t| t.text().collect::<String>())
+                })
+                .or_else(|| {
+                    // Fallback: direct h3 child
+                    element
+                        .select(&title_selector)
+                        .next()
+                        .map(|t| t.text().collect::<String>())
+                })
+                .unwrap_or_default()
+                .trim()
+                .to_string();
 
             if title.is_empty() {
                 continue;
             }
 
-            // Get URL
+            // Get URL - find anchor that contains or precedes the h3
             let url = element
                 .select(&link_selector)
-                .next()
+                .find(|a| {
+                    // Prefer anchor that contains h3, or has valid href
+                    a.select(&title_selector).next().is_some()
+                        || a.value()
+                            .attr("href")
+                            .map(|h| h.starts_with("http"))
+                            .unwrap_or(false)
+                })
                 .and_then(|a| a.value().attr("href"))
+                .or_else(|| {
+                    // Fallback: first anchor with http href
+                    element.select(&link_selector).find_map(|a| {
+                        a.value()
+                            .attr("href")
+                            .filter(|h| h.starts_with("http"))
+                    })
+                })
                 .map(|h| h.to_string())
                 .unwrap_or_default();
 
@@ -54,11 +88,18 @@ impl Google {
                 continue;
             }
 
-            // Get snippet
+            // Skip duplicates within this parse
+            if seen_urls.contains(&url) {
+                continue;
+            }
+            seen_urls.insert(url.clone());
+
+            // Get snippet from content container
             let snippet = element
                 .select(&snippet_selector)
                 .next()
-                .map(|s| s.text().collect::<String>());
+                .map(|s| s.text().collect::<String>().trim().to_string())
+                .filter(|s| !s.is_empty());
 
             let mut result = Result::new(url, title, engine_name.to_string());
             if let Some(content) = snippet {
@@ -112,7 +153,8 @@ impl Engine for Google {
         let mut query_params = HashMap::new();
         query_params.insert("q".to_string(), params.query.clone());
         query_params.insert("hl".to_string(), params.lang.clone());
-        query_params.insert("num".to_string(), "10".to_string());
+        query_params.insert("ie".to_string(), "utf8".to_string());
+        query_params.insert("oe".to_string(), "utf8".to_string());
 
         // Pagination
         if params.pageno > 1 {
@@ -123,12 +165,14 @@ impl Engine for Google {
         // Safe search
         match params.safesearch {
             2 => {
-                query_params.insert("safe".to_string(), "active".to_string());
+                query_params.insert("safe".to_string(), "high".to_string());
             }
             1 => {
                 query_params.insert("safe".to_string(), "medium".to_string());
             }
-            _ => {}
+            _ => {
+                query_params.insert("safe".to_string(), "off".to_string());
+            }
         }
 
         // Time range
@@ -142,8 +186,17 @@ impl Engine for Google {
             query_params.insert("tbs".to_string(), tbs.to_string());
         }
 
+        // Disable filtering to get more comprehensive results
+        query_params.insert("filter".to_string(), "0".to_string());
+
         let mut request = EngineRequest::get(&self.base_url);
         request.params = query_params;
+
+        // Add CONSENT cookie to bypass consent screen (matches SearXNG Python)
+        request = request.cookie("CONSENT", "YES+");
+
+        // Add Accept header
+        request = request.header("Accept", "*/*");
 
         Ok(request)
     }

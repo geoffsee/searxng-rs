@@ -18,44 +18,108 @@ impl Bing {
         }
     }
 
+    /// Decode Bing's encoded URLs
+    /// Bing often returns URLs like https://www.bing.com/ck/a?...&u=a1<base64>&...
+    /// The real URL is base64 encoded in the 'u' parameter (after removing 'a1' prefix)
+    fn decode_bing_url(&self, url: &str) -> String {
+        if !url.starts_with("https://www.bing.com/ck/a?") {
+            return url.to_string();
+        }
+
+        // Parse URL to get query params
+        if let Ok(parsed) = url::Url::parse(url) {
+            if let Some(u_param) = parsed.query_pairs().find(|(k, _)| k == "u") {
+                let encoded = u_param.1.to_string();
+                // Remove "a1" prefix
+                if encoded.len() > 2 {
+                    let encoded_url = &encoded[2..];
+                    // Add padding if needed
+                    let padding = (4 - encoded_url.len() % 4) % 4;
+                    let padded = format!("{}{}", encoded_url, "=".repeat(padding));
+
+                    // Decode base64
+                    if let Ok(decoded_bytes) = base64::Engine::decode(
+                        &base64::engine::general_purpose::URL_SAFE_NO_PAD,
+                        padded.trim_end_matches('='),
+                    ) {
+                        if let Ok(decoded_url) = String::from_utf8(decoded_bytes) {
+                            return decoded_url;
+                        }
+                    }
+                    // Try standard base64 as fallback
+                    if let Ok(decoded_bytes) = base64::Engine::decode(
+                        &base64::engine::general_purpose::STANDARD,
+                        &padded,
+                    ) {
+                        if let Ok(decoded_url) = String::from_utf8(decoded_bytes) {
+                            return decoded_url;
+                        }
+                    }
+                }
+            }
+        }
+
+        url.to_string()
+    }
+
     fn parse_results(&self, html: &str) -> Vec<Result> {
         let document = Html::parse_document(html);
         let mut results = Vec::new();
 
-        // Bing result selectors
+        // Bing result selectors - matching reference SearXNG implementation
+        // Reference uses: //ol[@id="b_results"]/li[contains(@class, "b_algo")]
+        let results_container = Selector::parse("#b_results").unwrap();
         let result_selector = Selector::parse("li.b_algo").unwrap();
         let title_selector = Selector::parse("h2 a").unwrap();
-        let snippet_selector = Selector::parse("p, .b_caption p").unwrap();
+        let snippet_selector = Selector::parse("p").unwrap();
 
         let mut position = 1u32;
 
-        for element in document.select(&result_selector) {
+        // Try to find results in #b_results container first
+        let search_area = document
+            .select(&results_container)
+            .next()
+            .map(|e| e.html())
+            .unwrap_or_else(|| document.html());
+
+        let search_doc = Html::parse_document(&search_area);
+
+        for element in search_doc.select(&result_selector) {
             // Get title and URL
             let title_elem = match element.select(&title_selector).next() {
                 Some(t) => t,
                 None => continue,
             };
 
-            let title = title_elem.text().collect::<String>();
+            let title = title_elem.text().collect::<String>().trim().to_string();
             if title.is_empty() {
                 continue;
             }
 
-            let url = title_elem
+            let raw_url = title_elem
                 .value()
                 .attr("href")
                 .map(|h| h.to_string())
                 .unwrap_or_default();
 
-            if url.is_empty() || url.starts_with('/') {
+            if raw_url.is_empty() || raw_url.starts_with('/') {
                 continue;
             }
 
-            // Get snippet
+            // Decode Bing's encoded URLs
+            let url = self.decode_bing_url(&raw_url);
+
+            // Get snippet - filter out algoSlug_icon elements by getting text carefully
             let snippet = element
                 .select(&snippet_selector)
                 .next()
-                .map(|s| s.text().collect::<String>());
+                .map(|s| {
+                    s.text()
+                        .collect::<String>()
+                        .trim()
+                        .to_string()
+                })
+                .filter(|s| !s.is_empty() && !s.contains("Web"));
 
             let mut result = Result::new(url, title, self.name().to_string());
             if let Some(content) = snippet {
