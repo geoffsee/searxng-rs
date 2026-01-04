@@ -58,7 +58,7 @@ The server starts at `http://127.0.0.1:8888` by default.
 ### Docker
 
 ```bash
-docker run -p 8888:8888 ghcr.io/seemueller-io/searxng-rs:latest
+docker run -p 8888:8888 ghcr.io/geoffsee/searxng-rs:latest
 ```
 
 Multi-arch images (amd64/arm64) are available on GHCR.
