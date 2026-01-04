@@ -159,6 +159,58 @@
             border-color: var(--accent-color);
         }
 
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+        }
+
+        .autocomplete {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 0;
+            overflow: hidden;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            z-index: 1000;
+            transition: max-height 0.2s, box-shadow 0.2s;
+        }
+
+        .autocomplete.open {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 5px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        .autocomplete ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .autocomplete li {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+
+        .autocomplete li:hover,
+        .autocomplete li.active {
+            background: var(--accent-color);
+        }
+
+        .autocomplete li.no-results {
+            color: var(--text-muted);
+            cursor: default;
+        }
+
+        .autocomplete li.no-results:hover {
+            background: transparent;
+        }
+
         {% block extra_styles %}{% endblock %}
     </style>
 </head>
@@ -187,5 +239,106 @@
     </footer>
 
     {% block scripts %}{% endblock %}
+
+    <script>
+    (function() {
+        const searchInput = document.querySelector('.search-input');
+        const autocomplete = document.querySelector('.autocomplete');
+        if (!searchInput || !autocomplete) return;
+
+        const autocompleteList = autocomplete.querySelector('ul');
+        let timeoutId;
+        let activeIndex = -1;
+
+        function closeAutocomplete() {
+            autocomplete.classList.remove('open');
+            activeIndex = -1;
+        }
+
+        function renderSuggestions(suggestions) {
+            autocompleteList.innerHTML = '';
+            activeIndex = -1;
+
+            if (!suggestions || suggestions.length === 0) {
+                const li = document.createElement('li');
+                li.className = 'no-results';
+                li.textContent = 'No suggestions';
+                autocompleteList.appendChild(li);
+                autocomplete.classList.add('open');
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            suggestions.forEach((suggestion, index) => {
+                const li = document.createElement('li');
+                li.textContent = suggestion;
+                li.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    searchInput.value = suggestion;
+                    closeAutocomplete();
+                    searchInput.closest('form').submit();
+                });
+                fragment.appendChild(li);
+            });
+            autocompleteList.appendChild(fragment);
+            autocomplete.classList.add('open');
+        }
+
+        async function fetchSuggestions(query) {
+            try {
+                const response = await fetch('/autocomplete?q=' + encodeURIComponent(query));
+                const data = await response.json();
+                if (searchInput.value === query) {
+                    renderSuggestions(data[1] || []);
+                }
+            } catch (err) {
+                closeAutocomplete();
+            }
+        }
+
+        searchInput.addEventListener('input', () => {
+            clearTimeout(timeoutId);
+            const query = searchInput.value.trim();
+
+            if (query.length < 2) {
+                closeAutocomplete();
+                return;
+            }
+
+            timeoutId = setTimeout(() => fetchSuggestions(query), 300);
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            const items = autocompleteList.querySelectorAll('li:not(.no-results)');
+            if (items.length === 0) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (activeIndex >= 0) items[activeIndex].classList.remove('active');
+                activeIndex = (activeIndex + 1) % items.length;
+                items[activeIndex].classList.add('active');
+                searchInput.value = items[activeIndex].textContent;
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (activeIndex >= 0) items[activeIndex].classList.remove('active');
+                activeIndex = (activeIndex - 1 + items.length) % items.length;
+                items[activeIndex].classList.add('active');
+                searchInput.value = items[activeIndex].textContent;
+            } else if (e.key === 'Escape') {
+                closeAutocomplete();
+            }
+        });
+
+        searchInput.addEventListener('blur', () => {
+            setTimeout(closeAutocomplete, 150);
+        });
+
+        searchInput.addEventListener('focus', () => {
+            if (autocompleteList.children.length > 0 && searchInput.value.length >= 2) {
+                autocomplete.classList.add('open');
+            }
+        });
+    })();
+    </script>
 </body>
 </html>

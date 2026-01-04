@@ -48,14 +48,18 @@
     <p class="home-tagline">Privacy-respecting metasearch engine</p>
 
     <form action="/search" method="get" class="home-search-form search-form">
-        <input
-            type="text"
-            name="q"
-            class="search-input"
-            placeholder="Search the web privately..."
-            autocomplete="off"
-            autofocus
-        >
+        <div class="search-wrapper">
+            <input
+                type="text"
+                name="q"
+                class="search-input"
+                placeholder="Search the web privately..."
+                autofocus
+            >
+            <div class="autocomplete">
+                <ul></ul>
+            </div>
+        </div>
     </form>
 
     <div class="categories home-categories">

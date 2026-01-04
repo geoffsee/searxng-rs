@@ -178,13 +178,17 @@
 {% block content %}
 <div class="search-header">
     <form action="/search" method="get" class="search-form">
-        <input
-            type="text"
-            name="q"
-            class="search-input"
-            value="{{ query }}"
-            autocomplete="off"
-        >
+        <div class="search-wrapper">
+            <input
+                type="text"
+                name="q"
+                class="search-input"
+                value="{{ query }}"
+            >
+            <div class="autocomplete">
+                <ul></ul>
+            </div>
+        </div>
         <button type="submit" class="search-button">Search</button>
     </form>
 
