@@ -126,7 +126,9 @@ impl YouTube {
 
                 // Get view count
                 let views = Self::get_text_from_json(
-                    video.get("viewCountText").unwrap_or(&serde_json::Value::Null),
+                    video
+                        .get("viewCountText")
+                        .unwrap_or(&serde_json::Value::Null),
                 );
 
                 // Build thumbnail URL
@@ -213,10 +215,10 @@ impl Engine for YouTube {
         // Time range filter using YouTube's sp parameter
         if let Some(ref time_range) = params.time_range {
             let sp = match time_range {
-                crate::query::TimeRange::Day => "EgIIAg%3D%3D",   // Last hour
-                crate::query::TimeRange::Week => "EgIIAw%3D%3D",  // This week
+                crate::query::TimeRange::Day => "EgIIAg%3D%3D", // Last hour
+                crate::query::TimeRange::Week => "EgIIAw%3D%3D", // This week
                 crate::query::TimeRange::Month => "EgIIBA%3D%3D", // This month
-                crate::query::TimeRange::Year => "EgIIBQ%3D%3D",  // This year
+                crate::query::TimeRange::Year => "EgIIBQ%3D%3D", // This year
             };
             query_params.insert("sp".to_string(), sp.to_string());
         }
@@ -225,7 +227,9 @@ impl Engine for YouTube {
         request.params = query_params;
 
         // Set CONSENT cookie to bypass consent page
-        request.cookies.insert("CONSENT".to_string(), "YES+".to_string());
+        request
+            .cookies
+            .insert("CONSENT".to_string(), "YES+".to_string());
 
         Ok(request)
     }

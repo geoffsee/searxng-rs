@@ -47,10 +47,9 @@ impl Bing {
                         }
                     }
                     // Try standard base64 as fallback
-                    if let Ok(decoded_bytes) = base64::Engine::decode(
-                        &base64::engine::general_purpose::STANDARD,
-                        &padded,
-                    ) {
+                    if let Ok(decoded_bytes) =
+                        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &padded)
+                    {
                         if let Ok(decoded_url) = String::from_utf8(decoded_bytes) {
                             return decoded_url;
                         }
@@ -113,12 +112,7 @@ impl Bing {
             let snippet = element
                 .select(&snippet_selector)
                 .next()
-                .map(|s| {
-                    s.text()
-                        .collect::<String>()
-                        .trim()
-                        .to_string()
-                })
+                .map(|s| s.text().collect::<String>().trim().to_string())
                 .filter(|s| !s.is_empty() && !s.contains("Web"));
 
             let mut result = Result::new(url, title, self.name().to_string());
@@ -200,7 +194,7 @@ impl Engine for Bing {
             1 => "MODERATE",
             _ => "OFF",
         };
-        request = request.cookie("SRCHHPGUSR", &format!("ADLT={}", safe_cookie));
+        request = request.cookie("SRCHHPGUSR", format!("ADLT={}", safe_cookie));
 
         Ok(request)
     }
@@ -291,8 +285,14 @@ impl Engine for BingImages {
             // Bing stores image data in a JSON attribute
             if let Some(m_attr) = element.value().attr("m") {
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(m_attr) {
-                    let url = json.get("purl").and_then(|v| v.as_str()).unwrap_or_default();
-                    let img_src = json.get("murl").and_then(|v| v.as_str()).unwrap_or_default();
+                    let url = json
+                        .get("purl")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default();
+                    let img_src = json
+                        .get("murl")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default();
                     let title = json.get("t").and_then(|v| v.as_str()).unwrap_or("Image");
 
                     if !url.is_empty() {

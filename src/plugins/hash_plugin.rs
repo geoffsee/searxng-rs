@@ -71,7 +71,12 @@ impl Plugin for HashPlugin {
 
         self.compute_hash(algorithm, input).map(|hash| {
             Answer::new(
-                format!("{} hash of \"{}\": {}", algorithm.to_uppercase(), input, hash),
+                format!(
+                    "{} hash of \"{}\": {}",
+                    algorithm.to_uppercase(),
+                    input,
+                    hash
+                ),
                 "hash_plugin".to_string(),
             )
         })

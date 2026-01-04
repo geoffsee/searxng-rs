@@ -13,14 +13,17 @@ impl UnitConverterPlugin {
     pub fn new() -> Self {
         Self {
             // Pattern: "10 km to miles" or "100 usd in eur"
-            pattern: Regex::new(
-                r"(?i)^(\d+\.?\d*)\s*([a-zA-Z°]+)\s+(?:to|in|as)\s+([a-zA-Z°]+)$",
-            )
-            .unwrap(),
+            pattern: Regex::new(r"(?i)^(\d+\.?\d*)\s*([a-zA-Z°]+)\s+(?:to|in|as)\s+([a-zA-Z°]+)$")
+                .unwrap(),
         }
     }
 
-    fn convert(&self, value: f64, from: &str, to: &str) -> Option<(f64, &'static str, &'static str)> {
+    fn convert(
+        &self,
+        value: f64,
+        from: &str,
+        to: &str,
+    ) -> Option<(f64, &'static str, &'static str)> {
         let from = from.to_lowercase();
         let to = to.to_lowercase();
 
@@ -37,9 +40,7 @@ impl UnitConverterPlugin {
             ("m" | "meters" | "meter", "ft" | "feet" | "foot") => {
                 Some((value * 3.28084, "m", "ft"))
             }
-            ("ft" | "feet" | "foot", "m" | "meters" | "meter") => {
-                Some((value * 0.3048, "ft", "m"))
-            }
+            ("ft" | "feet" | "foot", "m" | "meters" | "meter") => Some((value * 0.3048, "ft", "m")),
             // Centimeters <-> Inches
             ("cm" | "centimeters" | "centimeter", "in" | "inches" | "inch") => {
                 Some((value * 0.393701, "cm", "in"))
@@ -71,12 +72,8 @@ impl UnitConverterPlugin {
             ("f" | "fahrenheit" | "°f", "c" | "celsius" | "°c") => {
                 Some(((value - 32.0) * 5.0 / 9.0, "°F", "°C"))
             }
-            ("c" | "celsius" | "°c", "k" | "kelvin") => {
-                Some((value + 273.15, "°C", "K"))
-            }
-            ("k" | "kelvin", "c" | "celsius" | "°c") => {
-                Some((value - 273.15, "K", "°C"))
-            }
+            ("c" | "celsius" | "°c", "k" | "kelvin") => Some((value + 273.15, "°C", "K")),
+            ("k" | "kelvin", "c" | "celsius" | "°c") => Some((value - 273.15, "K", "°C")),
 
             // Volume conversions
             ("l" | "liters" | "liter" | "litres" | "litre", "gal" | "gallons" | "gallon") => {
@@ -147,10 +144,7 @@ impl Plugin for UnitConverterPlugin {
 
         let (result, from_unit, to_unit) = self.convert(value, from, to)?;
 
-        let answer = format!(
-            "{:.4} {} = {:.4} {}",
-            value, from_unit, result, to_unit
-        );
+        let answer = format!("{:.4} {} = {:.4} {}", value, from_unit, result, to_unit);
 
         Some(Answer::new(answer, "unit_converter".to_string()))
     }

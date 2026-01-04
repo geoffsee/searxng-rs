@@ -29,7 +29,8 @@ impl Brave {
             Selector::parse(r#"div[class*="snippet fdb"], div[class*="snippet "], div.snippet"#)
                 .unwrap();
         // Title is in a div with class containing 'title'
-        let title_selector = Selector::parse(r#"div[class*="title"], span[class*="title"]"#).unwrap();
+        let title_selector =
+            Selector::parse(r#"div[class*="title"], span[class*="title"]"#).unwrap();
         let link_selector = Selector::parse("a").unwrap();
         // Content is in a div with class 'content' (but not 'site-name-content')
         let snippet_selector =
@@ -79,12 +80,7 @@ impl Brave {
             let snippet = element
                 .select(&snippet_selector)
                 .next()
-                .map(|s| {
-                    s.text()
-                        .collect::<String>()
-                        .trim()
-                        .to_string()
-                })
+                .map(|s| s.text().collect::<String>().trim().to_string())
                 .filter(|s| !s.is_empty());
 
             let mut result = Result::new(url, title, self.name().to_string());

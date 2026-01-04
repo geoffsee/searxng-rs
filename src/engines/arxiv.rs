@@ -59,9 +59,7 @@ impl ArXiv {
             let authors: Vec<String> = entry
                 .split("<author>")
                 .skip(1)
-                .filter_map(|author_block| {
-                    Self::extract_tag(author_block, "name")
-                })
+                .filter_map(|author_block| Self::extract_tag(author_block, "name"))
                 .collect();
 
             let author_str = if authors.is_empty() {
@@ -95,9 +93,7 @@ impl ArXiv {
             let categories: Vec<String> = entry
                 .split("<category term=\"")
                 .skip(1)
-                .filter_map(|cat| {
-                    cat.find('"').map(|end| cat[..end].to_string())
-                })
+                .filter_map(|cat| cat.find('"').map(|end| cat[..end].to_string()))
                 .collect();
 
             // Extract published date
@@ -182,10 +178,7 @@ impl Engine for ArXiv {
         let mut query_params = HashMap::new();
 
         // Build search query with "all:" prefix to search all fields
-        query_params.insert(
-            "search_query".to_string(),
-            format!("all:{}", params.query),
-        );
+        query_params.insert("search_query".to_string(), format!("all:{}", params.query));
 
         // Pagination
         let start = (params.pageno - 1) * 10;
@@ -230,8 +223,14 @@ mod tests {
     #[test]
     fn test_extract_tag() {
         let xml = "<entry><title>Test Title</title><summary>Abstract text</summary></entry>";
-        assert_eq!(ArXiv::extract_tag(xml, "title"), Some("Test Title".to_string()));
-        assert_eq!(ArXiv::extract_tag(xml, "summary"), Some("Abstract text".to_string()));
+        assert_eq!(
+            ArXiv::extract_tag(xml, "title"),
+            Some("Test Title".to_string())
+        );
+        assert_eq!(
+            ArXiv::extract_tag(xml, "summary"),
+            Some("Abstract text".to_string())
+        );
         assert_eq!(ArXiv::extract_tag(xml, "missing"), None);
     }
 }

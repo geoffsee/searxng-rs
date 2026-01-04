@@ -75,11 +75,9 @@ impl Google {
                 .and_then(|a| a.value().attr("href"))
                 .or_else(|| {
                     // Fallback: first anchor with http href
-                    element.select(&link_selector).find_map(|a| {
-                        a.value()
-                            .attr("href")
-                            .filter(|h| h.starts_with("http"))
-                    })
+                    element
+                        .select(&link_selector)
+                        .find_map(|a| a.value().attr("href").filter(|h| h.starts_with("http")))
                 })
                 .map(|h| h.to_string())
                 .unwrap_or_default();

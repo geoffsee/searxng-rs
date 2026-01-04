@@ -66,10 +66,9 @@ impl Engine for GitHub {
         );
 
         // GitHub API requires User-Agent
-        request.headers.insert(
-            "User-Agent".to_string(),
-            "SearXNG-RS/1.0".to_string(),
-        );
+        request
+            .headers
+            .insert("User-Agent".to_string(), "SearXNG-RS/1.0".to_string());
 
         Ok(request)
     }
@@ -150,9 +149,7 @@ impl Engine for GitHub {
                 .map(|s| s.to_string());
 
             // Get stars
-            let stars = item
-                .get("stargazers_count")
-                .and_then(|s| s.as_u64());
+            let stars = item.get("stargazers_count").and_then(|s| s.as_u64());
 
             // Build result
             let mut result = Result::new(url, title, self.name().to_string());

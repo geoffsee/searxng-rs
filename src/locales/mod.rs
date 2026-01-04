@@ -66,11 +66,7 @@ pub fn parse_accept_language(header: &str) -> Option<String> {
 
             let quality = parts
                 .next()
-                .and_then(|q| {
-                    q.trim()
-                        .strip_prefix("q=")
-                        .and_then(|v| v.parse().ok())
-                })
+                .and_then(|q| q.trim().strip_prefix("q=").and_then(|v| v.parse().ok()))
                 .unwrap_or(1.0);
 
             Some((lang, quality))
@@ -126,7 +122,10 @@ impl Translations {
         de.insert("preferences".to_string(), "Einstellungen".to_string());
         de.insert("about".to_string(), "Über".to_string());
         de.insert("stats".to_string(), "Statistiken".to_string());
-        de.insert("no_results".to_string(), "Keine Ergebnisse gefunden".to_string());
+        de.insert(
+            "no_results".to_string(),
+            "Keine Ergebnisse gefunden".to_string(),
+        );
         translations.insert("de".to_string(), de);
 
         // French
@@ -135,7 +134,10 @@ impl Translations {
         fr.insert("preferences".to_string(), "Préférences".to_string());
         fr.insert("about".to_string(), "À propos".to_string());
         fr.insert("stats".to_string(), "Statistiques".to_string());
-        fr.insert("no_results".to_string(), "Aucun résultat trouvé".to_string());
+        fr.insert(
+            "no_results".to_string(),
+            "Aucun résultat trouvé".to_string(),
+        );
         translations.insert("fr".to_string(), fr);
 
         Self { translations }

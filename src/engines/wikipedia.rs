@@ -134,11 +134,8 @@ impl Engine for Wikipedia {
                     .and_then(|s| s.as_str())
                     .map(|s| s.to_string());
 
-                let mut result = Result::new(
-                    url.to_string(),
-                    title.to_string(),
-                    self.name().to_string(),
-                );
+                let mut result =
+                    Result::new(url.to_string(), title.to_string(), self.name().to_string());
 
                 if let Some(content) = extract {
                     // Truncate long extracts
@@ -167,13 +164,13 @@ impl Engine for Wikipedia {
 
 /// Wikipedia Infobox fetcher (for detailed article info)
 pub struct WikipediaInfobox {
-    api_url: String,
+    _api_url: String,
 }
 
 impl WikipediaInfobox {
     pub fn new() -> Self {
         Self {
-            api_url: "https://en.wikipedia.org/api/rest_v1/page/summary/".to_string(),
+            _api_url: "https://en.wikipedia.org/api/rest_v1/page/summary/".to_string(),
         }
     }
 

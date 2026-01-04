@@ -48,7 +48,10 @@ pub fn generate_user_agent() -> String {
     } else if browser_type < 9 {
         // Firefox (30% chance)
         let firefox = firefox_versions.choose(&mut rng).unwrap();
-        format!("Mozilla/5.0 ({}; rv:{}) Gecko/20100101 Firefox/{}", os, firefox, firefox)
+        format!(
+            "Mozilla/5.0 ({}; rv:{}) Gecko/20100101 Firefox/{}",
+            os, firefox, firefox
+        )
     } else {
         // Safari (10% chance) - only on Mac
         let safari = safari_versions.choose(&mut rng).unwrap();
@@ -65,6 +68,7 @@ pub fn accept_html() -> &'static str {
 }
 
 /// Standard accept headers for JSON requests
+#[allow(dead_code)]
 pub fn accept_json() -> &'static str {
     "application/json,text/javascript,*/*;q=0.01"
 }

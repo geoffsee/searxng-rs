@@ -47,9 +47,7 @@ pub trait Plugin: Send + Sync {
     /// Check if query matches this plugin's keywords
     fn matches_query(&self, query: &str) -> bool {
         let query_lower = query.to_lowercase();
-        self.keywords()
-            .iter()
-            .any(|k| query_lower.starts_with(k))
+        self.keywords().iter().any(|k| query_lower.starts_with(k))
     }
 
     /// Process query and return an answer if applicable

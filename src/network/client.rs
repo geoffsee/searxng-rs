@@ -58,7 +58,8 @@ impl HttpClient {
 
     /// Execute an engine request
     pub async fn execute(&self, request: EngineRequest) -> Result<EngineResponse> {
-        self.execute_with_timeout(request, self.default_timeout).await
+        self.execute_with_timeout(request, self.default_timeout)
+            .await
     }
 
     /// Execute an engine request with custom timeout

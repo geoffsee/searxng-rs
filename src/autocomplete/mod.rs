@@ -4,7 +4,7 @@
 
 mod backends;
 
-pub use backends::{AutocompleteBackend, get_backend, list_backends};
+pub use backends::{get_backend, list_backends, AutocompleteBackend};
 
 use crate::network::HttpClient;
 use anyhow::Result;
@@ -16,9 +16,8 @@ pub async fn fetch_suggestions(
     query: &str,
     lang: &str,
 ) -> Result<Vec<String>> {
-    let backend = get_backend(backend).ok_or_else(|| {
-        anyhow::anyhow!("Unknown autocomplete backend: {}", backend)
-    })?;
+    let backend = get_backend(backend)
+        .ok_or_else(|| anyhow::anyhow!("Unknown autocomplete backend: {}", backend))?;
 
     backend.suggest(client, query, lang).await
 }

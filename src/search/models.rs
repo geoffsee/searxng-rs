@@ -66,7 +66,11 @@ impl SearchQuery {
         Self {
             query: parsed.query,
             engine_refs,
-            lang: parsed.languages.first().cloned().unwrap_or_else(|| "all".to_string()),
+            lang: parsed
+                .languages
+                .first()
+                .cloned()
+                .unwrap_or_else(|| "all".to_string()),
             safesearch: parsed.safesearch.unwrap_or(0),
             pageno: parsed.pageno,
             time_range: parsed.time_range,
@@ -130,9 +134,7 @@ impl SearchQuery {
 
     /// Get effective timeout
     pub fn effective_timeout(&self, default: f64, max: f64) -> f64 {
-        self.timeout_limit
-            .map(|t| t.min(max))
-            .unwrap_or(default)
+        self.timeout_limit.map(|t| t.min(max)).unwrap_or(default)
     }
 
     /// Check if query is empty

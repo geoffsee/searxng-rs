@@ -29,11 +29,7 @@ impl EngineRegistry {
     }
 
     /// Register an engine
-    pub fn register(
-        &mut self,
-        engine: Arc<dyn Engine>,
-        config: EngineConfig,
-    ) {
+    pub fn register(&mut self, engine: Arc<dyn Engine>, config: EngineConfig) {
         let name = engine.name().to_string();
 
         // Register shortcut
@@ -141,9 +137,7 @@ impl EngineRegistry {
         self.configs
             .get(name)
             .map(|c| c.weight)
-            .unwrap_or_else(|| {
-                self.engines.get(name).map(|e| e.weight()).unwrap_or(1.0)
-            })
+            .unwrap_or_else(|| self.engines.get(name).map(|e| e.weight()).unwrap_or(1.0))
     }
 }
 

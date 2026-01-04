@@ -143,10 +143,7 @@ impl Engine for StackOverflow {
 
             // Add tags
             if let Some(tags) = item.get("tags").and_then(|t| t.as_array()) {
-                let tag_str: Vec<&str> = tags
-                    .iter()
-                    .filter_map(|t| t.as_str())
-                    .collect();
+                let tag_str: Vec<&str> = tags.iter().filter_map(|t| t.as_str()).collect();
                 if !tag_str.is_empty() {
                     content_parts.push(format!("[{}]", tag_str.join(", ")));
                 }
@@ -221,7 +218,10 @@ mod tests {
 
         assert!(request.url.contains("api.stackexchange.com"));
         assert!(request.params.contains_key("q"));
-        assert_eq!(request.params.get("site"), Some(&"stackoverflow".to_string()));
+        assert_eq!(
+            request.params.get("site"),
+            Some(&"stackoverflow".to_string())
+        );
     }
 
     #[test]

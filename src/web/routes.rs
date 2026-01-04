@@ -2,10 +2,7 @@
 
 use super::handlers;
 use super::state::AppState;
-use axum::{
-    routing::{get, post},
-    Router,
-};
+use axum::{routing::get, Router};
 use tower_http::cors::{Any, CorsLayer};
 
 /// Create the application router with all routes
@@ -20,7 +17,10 @@ pub fn create_router(state: AppState) -> Router {
         .route("/", get(handlers::index))
         .route("/search", get(handlers::search))
         .route("/about", get(handlers::about))
-        .route("/preferences", get(handlers::preferences).post(handlers::preferences))
+        .route(
+            "/preferences",
+            get(handlers::preferences).post(handlers::preferences),
+        )
         .route("/stats", get(handlers::stats))
         // API routes
         .route("/health", get(handlers::health))

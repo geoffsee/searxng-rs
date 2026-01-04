@@ -46,7 +46,7 @@ impl Metrics {
     /// Record engine response time
     pub fn record_response_time(&self, engine: &str, time_ms: u64) {
         let mut times = self.engine_response_times.write().unwrap();
-        let entry = times.entry(engine.to_string()).or_insert_with(Vec::new);
+        let entry = times.entry(engine.to_string()).or_default();
 
         // Keep last 100 response times
         if entry.len() >= 100 {

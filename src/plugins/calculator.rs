@@ -26,18 +26,15 @@ impl CalculatorPlugin {
         self.parse_expression(&expr)
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn parse_expression(&self, expr: &str) -> Option<f64> {
         // Handle parentheses first
         if let Some(start) = expr.rfind('(') {
             if let Some(end) = expr[start..].find(')') {
                 let inner = &expr[start + 1..start + end];
                 if let Some(result) = self.parse_expression(inner) {
-                    let new_expr = format!(
-                        "{}{}{}",
-                        &expr[..start],
-                        result,
-                        &expr[start + end + 1..]
-                    );
+                    let new_expr =
+                        format!("{}{}{}", &expr[..start], result, &expr[start + end + 1..]);
                     return self.parse_expression(&new_expr);
                 }
             }
@@ -62,7 +59,7 @@ impl CalculatorPlugin {
         }
 
         // Handle multiplication and division
-        if let Some(pos) = expr.rfind(|c| c == '*' || c == '/') {
+        if let Some(pos) = expr.rfind(['*', '/']) {
             let left = &expr[..pos];
             let right = &expr[pos + 1..];
             let op = expr.chars().nth(pos)?;
@@ -147,7 +144,10 @@ fn pos_is_operator(expr: &str, c: char) -> bool {
         }
         // Check if previous char is an operator
         let prev = expr.chars().nth(pos - 1);
-        !matches!(prev, Some('+') | Some('-') | Some('*') | Some('/') | Some('^') | Some('('))
+        !matches!(
+            prev,
+            Some('+') | Some('-') | Some('*') | Some('/') | Some('^') | Some('(')
+        )
     } else {
         false
     }
@@ -190,7 +190,7 @@ impl Plugin for CalculatorPlugin {
                     || c == ')'
                     || c == '.'
                     || c == ' '
-            }) && q.contains(|c: char| c == '+' || c == '-' || c == '*' || c == '/' || c == '^'))
+            }) && q.contains(['+', '-', '*', '/', '^']))
     }
 
     fn process(&self, query: &str) -> Option<Answer> {

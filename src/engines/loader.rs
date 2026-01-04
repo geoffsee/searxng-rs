@@ -6,7 +6,7 @@ use super::{arxiv, bing, brave, duckduckgo, github, google, stackoverflow, wikip
 use crate::config::{EngineConfig, Settings};
 use anyhow::Result;
 use std::sync::Arc;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 /// Loader for initializing engines from configuration
 pub struct EngineLoader;

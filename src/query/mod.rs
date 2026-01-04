@@ -10,7 +10,6 @@
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 
 /// Parsed search query with extracted special syntax
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -97,8 +96,7 @@ impl ParsedQuery {
         }
 
         // Parse redirect to first result
-        if query.starts_with('!') && query.chars().skip(1).next().map(|c| c == ' ').unwrap_or(true)
-        {
+        if query.starts_with('!') && query.chars().nth(1).map(|c| c == ' ').unwrap_or(true) {
             redirect_to_first = true;
             query = query.trim_start_matches('!').to_string();
         }

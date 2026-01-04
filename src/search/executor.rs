@@ -1,9 +1,9 @@
 //! Search execution and orchestration
 
 use super::models::{EngineRef, SearchQuery};
-use crate::engines::{Engine, EngineRegistry, EngineResults, RequestParams};
+use crate::engines::{Engine, EngineRegistry, RequestParams};
 use crate::network::HttpClient;
-use crate::results::{EngineError, ResultContainer, Timing, UnresponsiveEngine};
+use crate::results::{EngineError, ResultContainer, Timing};
 use futures::future::join_all;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -112,7 +112,10 @@ impl Search {
         let engine_timeout = Duration::from_secs_f64(
             query
                 .timeout_limit
-                .unwrap_or(self.registry.get_timeout(&engine_name, self.default_timeout.as_secs_f64()))
+                .unwrap_or(
+                    self.registry
+                        .get_timeout(&engine_name, self.default_timeout.as_secs_f64()),
+                )
                 .min(self.max_timeout.as_secs_f64()),
         );
 
@@ -222,10 +225,7 @@ impl Search {
     fn get_external_bang_url(&self, bang: &str, query: &str) -> Option<String> {
         let encoded_query = urlencoding::encode(query);
         match bang {
-            "g" => Some(format!(
-                "https://www.google.com/search?q={}",
-                encoded_query
-            )),
+            "g" => Some(format!("https://www.google.com/search?q={}", encoded_query)),
             "yt" => Some(format!(
                 "https://www.youtube.com/results?search_query={}",
                 encoded_query
@@ -234,37 +234,20 @@ impl Search {
                 "https://en.wikipedia.org/wiki/Special:Search?search={}",
                 encoded_query
             )),
-            "gh" => Some(format!(
-                "https://github.com/search?q={}",
-                encoded_query
-            )),
+            "gh" => Some(format!("https://github.com/search?q={}", encoded_query)),
             "so" => Some(format!(
                 "https://stackoverflow.com/search?q={}",
                 encoded_query
             )),
-            "ddg" => Some(format!(
-                "https://duckduckgo.com/?q={}",
-                encoded_query
-            )),
-            "amazon" => Some(format!(
-                "https://www.amazon.com/s?k={}",
-                encoded_query
-            )),
-            "imdb" => Some(format!(
-                "https://www.imdb.com/find?q={}",
-                encoded_query
-            )),
+            "ddg" => Some(format!("https://duckduckgo.com/?q={}", encoded_query)),
+            "amazon" => Some(format!("https://www.amazon.com/s?k={}", encoded_query)),
+            "imdb" => Some(format!("https://www.imdb.com/find?q={}", encoded_query)),
             _ => None,
         }
     }
 
     /// Execute search and return results for a specific category
-    pub async fn search_category(
-        &self,
-        query: &str,
-        category: &str,
-        page: u32,
-    ) -> ResultContainer {
+    pub async fn search_category(&self, query: &str, category: &str, page: u32) -> ResultContainer {
         let engines = self.registry.get_by_category(category);
 
         let engine_refs: Vec<EngineRef> = engines

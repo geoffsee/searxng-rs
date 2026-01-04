@@ -4,7 +4,7 @@
 
 use anyhow::Result;
 use searxng_rs::{
-    config::{self, Settings},
+    config::Settings,
     engines::EngineLoader,
     network::HttpClient,
     web::{create_router, AppState},
@@ -17,7 +17,7 @@ use tracing_subscriber::FmtSubscriber;
 #[tokio::main]
 async fn main() -> Result<()> {
     // Initialize logging
-    let subscriber = FmtSubscriber::builder()
+    FmtSubscriber::builder()
         .with_max_level(Level::INFO)
         .with_target(false)
         .init();
@@ -26,7 +26,10 @@ async fn main() -> Result<()> {
 
     // Load configuration
     let settings = load_settings()?;
-    info!("Loaded configuration for instance: {}", settings.general.instance_name);
+    info!(
+        "Loaded configuration for instance: {}",
+        settings.general.instance_name
+    );
 
     // Initialize HTTP client
     let client = HttpClient::with_settings(&settings.outgoing)?;
@@ -44,10 +47,7 @@ async fn main() -> Result<()> {
     let app = create_router(state);
 
     // Bind address
-    let addr = SocketAddr::new(
-        settings.server.bind_address.parse()?,
-        settings.server.port,
-    );
+    let addr = SocketAddr::new(settings.server.bind_address.parse()?, settings.server.port);
 
     info!("Starting server on http://{}", addr);
 
@@ -99,6 +99,7 @@ fn load_settings() -> Result<Settings> {
 }
 
 /// Print usage information
+#[allow(dead_code)]
 fn print_usage() {
     println!(
         r#"

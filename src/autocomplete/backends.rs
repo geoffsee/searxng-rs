@@ -12,12 +12,7 @@ pub trait AutocompleteBackend: Send + Sync {
     fn name(&self) -> &str;
 
     /// Fetch suggestions for a query
-    async fn suggest(
-        &self,
-        client: &HttpClient,
-        query: &str,
-        lang: &str,
-    ) -> Result<Vec<String>>;
+    async fn suggest(&self, client: &HttpClient, query: &str, lang: &str) -> Result<Vec<String>>;
 }
 
 /// Get a backend by name
@@ -46,12 +41,7 @@ impl AutocompleteBackend for DuckDuckGo {
         "duckduckgo"
     }
 
-    async fn suggest(
-        &self,
-        client: &HttpClient,
-        query: &str,
-        _lang: &str,
-    ) -> Result<Vec<String>> {
+    async fn suggest(&self, client: &HttpClient, query: &str, _lang: &str) -> Result<Vec<String>> {
         let url = "https://duckduckgo.com/ac/";
         let mut params = HashMap::new();
         params.insert("q".to_string(), query.to_string());
@@ -90,12 +80,7 @@ impl AutocompleteBackend for Google {
         "google"
     }
 
-    async fn suggest(
-        &self,
-        client: &HttpClient,
-        query: &str,
-        lang: &str,
-    ) -> Result<Vec<String>> {
+    async fn suggest(&self, client: &HttpClient, query: &str, lang: &str) -> Result<Vec<String>> {
         let url = "https://www.google.com/complete/search";
         let mut params = HashMap::new();
         params.insert("q".to_string(), query.to_string());
@@ -135,12 +120,7 @@ impl AutocompleteBackend for Wikipedia {
         "wikipedia"
     }
 
-    async fn suggest(
-        &self,
-        client: &HttpClient,
-        query: &str,
-        lang: &str,
-    ) -> Result<Vec<String>> {
+    async fn suggest(&self, client: &HttpClient, query: &str, lang: &str) -> Result<Vec<String>> {
         // Use language-specific Wikipedia
         let wiki_lang = if lang.len() >= 2 { &lang[..2] } else { "en" };
         let url = format!("https://{}.wikipedia.org/w/api.php", wiki_lang);
@@ -186,12 +166,7 @@ impl AutocompleteBackend for Brave {
         "brave"
     }
 
-    async fn suggest(
-        &self,
-        client: &HttpClient,
-        query: &str,
-        _lang: &str,
-    ) -> Result<Vec<String>> {
+    async fn suggest(&self, client: &HttpClient, query: &str, _lang: &str) -> Result<Vec<String>> {
         let url = "https://search.brave.com/api/suggest";
         let mut params = HashMap::new();
         params.insert("q".to_string(), query.to_string());
@@ -229,12 +204,7 @@ impl AutocompleteBackend for Qwant {
         "qwant"
     }
 
-    async fn suggest(
-        &self,
-        client: &HttpClient,
-        query: &str,
-        lang: &str,
-    ) -> Result<Vec<String>> {
+    async fn suggest(&self, client: &HttpClient, query: &str, lang: &str) -> Result<Vec<String>> {
         let url = "https://api.qwant.com/v3/suggest";
 
         // Map language to Qwant locale format (e.g., "en" -> "en_US")
@@ -268,9 +238,7 @@ impl AutocompleteBackend for Qwant {
             .and_then(|items| items.as_array())
             .map(|arr| {
                 arr.iter()
-                    .filter_map(|item| {
-                        item.get("value").and_then(|v| v.as_str()).map(String::from)
-                    })
+                    .filter_map(|item| item.get("value").and_then(|v| v.as_str()).map(String::from))
                     .collect()
             })
             .unwrap_or_default();

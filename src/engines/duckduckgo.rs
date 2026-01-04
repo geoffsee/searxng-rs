@@ -8,14 +8,14 @@ use std::collections::HashMap;
 
 /// DuckDuckGo web search engine
 pub struct DuckDuckGo {
-    base_url: String,
+    _base_url: String,
     html_url: String,
 }
 
 impl DuckDuckGo {
     pub fn new() -> Self {
         Self {
-            base_url: "https://api.duckduckgo.com/".to_string(),
+            _base_url: "https://api.duckduckgo.com/".to_string(),
             html_url: "https://html.duckduckgo.com/html/".to_string(),
         }
     }
@@ -27,8 +27,7 @@ impl DuckDuckGo {
         // DuckDuckGo HTML result selectors - matching reference SearXNG implementation
         // Reference uses: //div[@id="links"]/div[contains(@class, "web-result")]
         let links_selector = Selector::parse("#links").unwrap();
-        let result_selector =
-            Selector::parse(r#"div[class*="web-result"], div.result"#).unwrap();
+        let result_selector = Selector::parse(r#"div[class*="web-result"], div.result"#).unwrap();
         // Title is in h2/a
         let title_link_selector = Selector::parse("h2 a, a.result__a").unwrap();
         // Content/snippet
@@ -272,11 +271,8 @@ impl Engine for DuckDuckGoInstant {
                     result.get("FirstURL").and_then(|v| v.as_str()),
                     result.get("Text").and_then(|v| v.as_str()),
                 ) {
-                    let mut r = Result::new(
-                        url.to_string(),
-                        text.to_string(),
-                        self.name().to_string(),
-                    );
+                    let mut r =
+                        Result::new(url.to_string(), text.to_string(), self.name().to_string());
                     r = r.with_position((i + 1) as u32);
                     engine_results.add_result(r);
                 }

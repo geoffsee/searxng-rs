@@ -24,6 +24,7 @@ pub struct SearchParams {
     /// Language
     pub language: Option<String>,
     /// Time range
+    #[allow(dead_code)]
     pub time_range: Option<String>,
     /// Safe search level
     pub safesearch: Option<u8>,
@@ -61,7 +62,10 @@ pub struct ResultResponse {
 pub async fn index(State(state): State<AppState>) -> impl IntoResponse {
     let mut ctx = Context::new();
     ctx.insert("instance_name", state.instance_name());
-    ctx.insert("categories", &["general", "images", "videos", "news", "it", "science"]);
+    ctx.insert(
+        "categories",
+        &["general", "images", "videos", "news", "it", "science"],
+    );
 
     match state.templates.render_with_context("index.html", &ctx) {
         Ok(html) => Html(html).into_response(),
@@ -73,10 +77,7 @@ pub async fn index(State(state): State<AppState>) -> impl IntoResponse {
 }
 
 /// Search handler
-pub async fn search(
-    State(state): State<AppState>,
-    Query(params): Query<SearchParams>,
-) -> Response {
+pub async fn search(State(state): State<AppState>, Query(params): Query<SearchParams>) -> Response {
     // Check for query
     let raw_query = match params.q {
         Some(q) if !q.trim().is_empty() => q,
@@ -161,8 +162,16 @@ pub async fn search(
                         thumbnail: r.metadata.thumbnail,
                     })
                     .collect(),
-                answers: results.get_answers().into_iter().map(|a| a.answer).collect(),
-                suggestions: results.get_suggestions().into_iter().map(|s| s.text).collect(),
+                answers: results
+                    .get_answers()
+                    .into_iter()
+                    .map(|a| a.answer)
+                    .collect(),
+                suggestions: results
+                    .get_suggestions()
+                    .into_iter()
+                    .map(|s| s.text)
+                    .collect(),
                 infoboxes: vec![],
                 unresponsive_engines: results
                     .get_unresponsive()
@@ -184,11 +193,7 @@ pub async fn search(
                     r.engine
                 ));
             }
-            (
-                [(axum::http::header::CONTENT_TYPE, "text/csv")],
-                csv,
-            )
-                .into_response()
+            ([(axum::http::header::CONTENT_TYPE, "text/csv")], csv).into_response()
         }
         _ => {
             // HTML response
@@ -205,7 +210,10 @@ pub async fn search(
             ctx.insert("timings", &results.get_timings());
             ctx.insert("result_count", &results.result_count());
             ctx.insert("pageno", &search_query.pageno);
-            ctx.insert("categories", &["general", "images", "videos", "news", "it", "science"]);
+            ctx.insert(
+                "categories",
+                &["general", "images", "videos", "news", "it", "science"],
+            );
 
             match state.templates.render_with_context("search.html", &ctx) {
                 Ok(html) => Html(html).into_response(),
@@ -242,7 +250,10 @@ pub async fn preferences(State(state): State<AppState>) -> impl IntoResponse {
     ctx.insert("engines", &state.registry.names());
     ctx.insert("categories", &state.registry.category_names());
 
-    match state.templates.render_with_context("preferences.html", &ctx) {
+    match state
+        .templates
+        .render_with_context("preferences.html", &ctx)
+    {
         Ok(html) => Html(html),
         Err(e) => {
             tracing::error!("Template error: {}", e);
@@ -298,14 +309,10 @@ pub async fn autocomplete(
     let lang = &state.settings.ui.default_locale;
 
     // Fetch suggestions
-    let suggestions = crate::autocomplete::fetch_suggestions(
-        &state.http_client,
-        backend_name,
-        &params.q,
-        lang,
-    )
-    .await
-    .unwrap_or_default();
+    let suggestions =
+        crate::autocomplete::fetch_suggestions(&state.http_client, backend_name, &params.q, lang)
+            .await
+            .unwrap_or_default();
 
     // Return in OpenSearch format: [query, [suggestions...]]
     Json(vec![
@@ -326,10 +333,7 @@ pub async fn robots_txt(State(state): State<AppState>) -> impl IntoResponse {
     } else {
         "User-agent: *\nDisallow: /\n"
     };
-    (
-        [(axum::http::header::CONTENT_TYPE, "text/plain")],
-        content,
-    )
+    ([(axum::http::header::CONTENT_TYPE, "text/plain")], content)
 }
 
 /// Favicon SVG data (SearXNG logo)
