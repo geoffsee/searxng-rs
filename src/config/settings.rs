@@ -224,7 +224,7 @@ impl Default for ServerSettings {
 }
 
 /// Method to determine real client IP
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RealIpMethod {
     /// Use X-Forwarded-For header
@@ -232,13 +232,8 @@ pub enum RealIpMethod {
     /// Use X-Real-IP header
     XRealIp,
     /// Use connection IP directly
+    #[default]
     Connection,
-}
-
-impl Default for RealIpMethod {
-    fn default() -> Self {
-        Self::Connection
-    }
 }
 
 /// Outgoing request settings
