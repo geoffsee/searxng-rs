@@ -1,0 +1,11 @@
+target/
+.git/
+.gitignore
+.github/
+.idea/
+reference/
+*.md
+*.png
+LICENSE
+Containerfile
+.dockerignore
