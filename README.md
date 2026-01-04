@@ -1,6 +1,6 @@
 # SearXNG-RS
 
-[![CI](https://github.com/seemueller-io/searxng-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/seemueller-io/searxng-rs/actions/workflows/ci.yml)
+[![CI](https://github.com/geoffsee/searxng-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/geoffsee/searxng-rs/actions/workflows/ci.yml)
 
 A privacy-respecting metasearch engine written in Rust. This project is a Rust-based implementation inspired by [SearXNG](https://github.com/searxng/searxng).
 
