@@ -7,5 +7,5 @@ reference/
 *.md
 *.png
 LICENSE
-Containerfile
+Dockerfile
 .dockerignore
